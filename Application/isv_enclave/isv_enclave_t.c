@@ -53,10 +53,23 @@ typedef struct ms_verify_secret_data_t {
 	uint8_t* ms_p_ret;
 } ms_verify_secret_data_t;
 
+typedef struct ms_zy_unseal_pub_key_t {
+	sgx_status_t ms_retval;
+	sgx_sealed_data_t ms_sealedData;
+	uint8_t* ms_unsealedData;
+} ms_zy_unseal_pub_key_t;
+
+typedef struct ms_zy_get_encrypt_len_t {
+	uint32_t ms_retval;
+	sgx_sealed_data_t ms_sealedData;
+} ms_zy_get_encrypt_len_t;
+
 typedef struct ms_sgx_ra_get_ga_t {
 	sgx_status_t ms_retval;
 	sgx_ra_context_t ms_context;
 	sgx_ec256_public_t* ms_g_a;
+	sgx_ec256_fix_data_t* ms_fix_data;
+	sgx_sealed_data_t* ms_enc_private_key;
 } ms_sgx_ra_get_ga_t;
 
 typedef struct ms_sgx_ra_proc_msg2_trusted_t {
@@ -346,6 +359,65 @@ err:
 	return status;
 }
 
+static sgx_status_t SGX_CDECL sgx_zy_unseal_pub_key(void* pms)
+{
+	CHECK_REF_POINTER(pms, sizeof(ms_zy_unseal_pub_key_t));
+	//
+	// fence after pointer checks
+	//
+	sgx_lfence();
+	ms_zy_unseal_pub_key_t* ms = SGX_CAST(ms_zy_unseal_pub_key_t*, pms);
+	sgx_status_t status = SGX_SUCCESS;
+	uint8_t* _tmp_unsealedData = ms->ms_unsealedData;
+	size_t _len_unsealedData = sizeof(uint8_t);
+	uint8_t* _in_unsealedData = NULL;
+
+	CHECK_UNIQUE_POINTER(_tmp_unsealedData, _len_unsealedData);
+
+	//
+	// fence after pointer checks
+	//
+	sgx_lfence();
+
+	if (_tmp_unsealedData != NULL && _len_unsealedData != 0) {
+		if ((_in_unsealedData = (uint8_t*)malloc(_len_unsealedData)) == NULL) {
+			status = SGX_ERROR_OUT_OF_MEMORY;
+			goto err;
+		}
+
+		memset((void*)_in_unsealedData, 0, _len_unsealedData);
+	}
+
+	ms->ms_retval = zy_unseal_pub_key(ms->ms_sealedData, _in_unsealedData);
+err:
+	if (_in_unsealedData) {
+		if (memcpy_s(_tmp_unsealedData, _len_unsealedData, _in_unsealedData, _len_unsealedData)) {
+			status = SGX_ERROR_UNEXPECTED;
+		}
+		free(_in_unsealedData);
+	}
+
+	return status;
+}
+
+static sgx_status_t SGX_CDECL sgx_zy_get_encrypt_len(void* pms)
+{
+	CHECK_REF_POINTER(pms, sizeof(ms_zy_get_encrypt_len_t));
+	//
+	// fence after pointer checks
+	//
+	sgx_lfence();
+	ms_zy_get_encrypt_len_t* ms = SGX_CAST(ms_zy_get_encrypt_len_t*, pms);
+	sgx_status_t status = SGX_SUCCESS;
+
+
+
+	ms->ms_retval = zy_get_encrypt_len(ms->ms_sealedData);
+
+
+	return status;
+}
+
 static sgx_status_t SGX_CDECL sgx_sgx_ra_get_ga(void* pms)
 {
 	CHECK_REF_POINTER(pms, sizeof(ms_sgx_ra_get_ga_t));
@@ -358,8 +430,16 @@ static sgx_status_t SGX_CDECL sgx_sgx_ra_get_ga(void* pms)
 	sgx_ec256_public_t* _tmp_g_a = ms->ms_g_a;
 	size_t _len_g_a = sizeof(sgx_ec256_public_t);
 	sgx_ec256_public_t* _in_g_a = NULL;
+	sgx_ec256_fix_data_t* _tmp_fix_data = ms->ms_fix_data;
+	size_t _len_fix_data = sizeof(sgx_ec256_fix_data_t);
+	sgx_ec256_fix_data_t* _in_fix_data = NULL;
+	sgx_sealed_data_t* _tmp_enc_private_key = ms->ms_enc_private_key;
+	size_t _len_enc_private_key = sizeof(sgx_sealed_data_t);
+	sgx_sealed_data_t* _in_enc_private_key = NULL;
 
 	CHECK_UNIQUE_POINTER(_tmp_g_a, _len_g_a);
+	CHECK_UNIQUE_POINTER(_tmp_fix_data, _len_fix_data);
+	CHECK_UNIQUE_POINTER(_tmp_enc_private_key, _len_enc_private_key);
 
 	//
 	// fence after pointer checks
@@ -374,14 +454,52 @@ static sgx_status_t SGX_CDECL sgx_sgx_ra_get_ga(void* pms)
 
 		memset((void*)_in_g_a, 0, _len_g_a);
 	}
+	if (_tmp_fix_data != NULL && _len_fix_data != 0) {
+		_in_fix_data = (sgx_ec256_fix_data_t*)malloc(_len_fix_data);
+		if (_in_fix_data == NULL) {
+			status = SGX_ERROR_OUT_OF_MEMORY;
+			goto err;
+		}
 
-	ms->ms_retval = sgx_ra_get_ga(ms->ms_context, _in_g_a);
+		if (memcpy_s(_in_fix_data, _len_fix_data, _tmp_fix_data, _len_fix_data)) {
+			status = SGX_ERROR_UNEXPECTED;
+			goto err;
+		}
+
+	}
+	if (_tmp_enc_private_key != NULL && _len_enc_private_key != 0) {
+		_in_enc_private_key = (sgx_sealed_data_t*)malloc(_len_enc_private_key);
+		if (_in_enc_private_key == NULL) {
+			status = SGX_ERROR_OUT_OF_MEMORY;
+			goto err;
+		}
+
+		if (memcpy_s(_in_enc_private_key, _len_enc_private_key, _tmp_enc_private_key, _len_enc_private_key)) {
+			status = SGX_ERROR_UNEXPECTED;
+			goto err;
+		}
+
+	}
+
+	ms->ms_retval = sgx_ra_get_ga(ms->ms_context, _in_g_a, _in_fix_data, _in_enc_private_key);
 err:
 	if (_in_g_a) {
 		if (memcpy_s(_tmp_g_a, _len_g_a, _in_g_a, _len_g_a)) {
 			status = SGX_ERROR_UNEXPECTED;
 		}
 		free(_in_g_a);
+	}
+	if (_in_fix_data) {
+		if (memcpy_s(_tmp_fix_data, _len_fix_data, _in_fix_data, _len_fix_data)) {
+			status = SGX_ERROR_UNEXPECTED;
+		}
+		free(_in_fix_data);
+	}
+	if (_in_enc_private_key) {
+		if (memcpy_s(_tmp_enc_private_key, _len_enc_private_key, _in_enc_private_key, _len_enc_private_key)) {
+			status = SGX_ERROR_UNEXPECTED;
+		}
+		free(_in_enc_private_key);
 	}
 
 	return status;
@@ -526,14 +644,16 @@ err:
 
 SGX_EXTERNC const struct {
 	size_t nr_ecall;
-	struct {void* ecall_addr; uint8_t is_priv;} ecall_table[7];
+	struct {void* ecall_addr; uint8_t is_priv;} ecall_table[9];
 } g_ecall_table = {
-	7,
+	9,
 	{
 		{(void*)(uintptr_t)sgx_enclave_init_ra, 0},
 		{(void*)(uintptr_t)sgx_enclave_ra_close, 0},
 		{(void*)(uintptr_t)sgx_verify_att_result_mac, 0},
 		{(void*)(uintptr_t)sgx_verify_secret_data, 0},
+		{(void*)(uintptr_t)sgx_zy_unseal_pub_key, 0},
+		{(void*)(uintptr_t)sgx_zy_get_encrypt_len, 0},
 		{(void*)(uintptr_t)sgx_sgx_ra_get_ga, 0},
 		{(void*)(uintptr_t)sgx_sgx_ra_proc_msg2_trusted, 0},
 		{(void*)(uintptr_t)sgx_sgx_ra_get_msg3_trusted, 0},
@@ -542,19 +662,19 @@ SGX_EXTERNC const struct {
 
 SGX_EXTERNC const struct {
 	size_t nr_ocall;
-	uint8_t entry_table[9][7];
+	uint8_t entry_table[9][9];
 } g_dyn_entry_table = {
 	9,
 	{
-		{0, 0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, },
 	}
 };
 

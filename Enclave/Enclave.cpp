@@ -17,6 +17,28 @@ Enclave* Enclave::getInstance() {
     return instance;
 }
 
+//sgx_enclave_id_t Enclave::getLocalEnclaveId(){
+//    return this->enclave_id;
+//}
+//
+//sgx_ra_context_t Enclave::getLocalEnclaveContext(){
+//    return this->context;
+//}
+//
+//sgx_status_t Enclave::getLocalEnclaveStatus(){
+//    return this->status;
+//}
+
+void Enclave::setLocalEnclaveId(sgx_enclave_id_t enclave_id){
+    this->enclave_id = enclave_id;
+}
+void Enclave::setLocalEnclaveContext(sgx_ra_context_t context){
+    this->context = context;
+}
+void Enclave::setLocalEnclaveStatus(sgx_status_t status){
+    this->status = status;
+}
+
 
 Enclave::~Enclave() {
     int ret = -1;
@@ -41,7 +63,7 @@ Enclave::~Enclave() {
 
 
 
-sgx_status_t Enclave::createEnclave() {
+sgx_status_t Enclave::createEnclave(uint32_t createENCLAVE) {
     sgx_status_t ret;
     int launch_token_update = 0;
     int enclave_lost_retry_time = 1;
@@ -50,11 +72,17 @@ sgx_status_t Enclave::createEnclave() {
     memset(&launch_token, 0, sizeof(sgx_launch_token_t));
 
     do {
-        ret = sgx_create_enclave(this->enclave_path,
-                                 SGX_DEBUG_FLAG,
-                                 &launch_token,
-                                 &launch_token_update,
-                                 &this->enclave_id, NULL);
+        if(createENCLAVE == 0) {
+            ret = sgx_create_enclave(this->enclave_path,
+                                     SGX_DEBUG_FLAG,
+                                     &launch_token,
+                                     &launch_token_update,
+                                     &this->enclave_id, NULL);
+        } else {
+            ret = SGX_SUCCESS;
+        }
+        /*
+        */
 
         if (SGX_SUCCESS != ret) {
             Log("Error, call sgx_create_enclave fail", log::error);

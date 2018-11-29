@@ -1,9 +1,11 @@
 #include "MessageHandler.h"
+#include "sgx_tseal.h"
 
 using namespace util;
 
 MessageHandler::MessageHandler(int port) {
     this->nm = NetworkManagerServer::getInstance(port);
+    this->local_ec256_fix_data.g_key_flag = 0;
 }
 
 MessageHandler::~MessageHandler() {
@@ -25,8 +27,39 @@ void MessageHandler::start() {
 
 
 sgx_status_t MessageHandler::initEnclave() {
+    /*
+    if(this->my_flag == 0) {
+        Log("========== CREATE ENCLAVE FIRST TIME ==========");
+        this->my_flag = 1;
+        sgx_status_t ret = this->enclave->createEnclave();
+        this->local_enclave_id = this->enclave->getID();
+        this->local_enclave_context = this->enclave->getContext();
+        this->local_enclave_status = this->enclave->getStatus();
+        Log("========== STATUS IS ==========");
+        Log("\t%lx",this->local_enclave_status);
+    } else {
+        Log("========== ENCLAVE HAS BEEN CREATED ==========");
+        // set org enclave data
+        this->enclave->setLocalEnclaveId(this->local_enclave_id);
+        this->enclave->setLocalEnclaveContext(this->local_enclave_context);
+        this->enclave->setLocalEnclaveStatus((sgx_status_t)0);
+        Log("========== STATUS IS ==========");
+        Log("\t%lx",this->getEnclaveStatus());
+    }
+    return ret;
+    */
+    Log("========== STATUS IS ==========");
+    Log("\tmy flag is:%d",this->my_flag);
     this->enclave = Enclave::getInstance();
-    return this->enclave->createEnclave();
+    sgx_status_t ret = this->enclave->createEnclave(this->my_flag);
+    if(this->my_flag == 0) {
+        //this->local_enclave_context = this->enclave->getContext();
+        this->my_flag = 1;
+    } 
+    //else {
+    //    this->enclave->setLocalEnclaveContext(this->local_enclave_context);
+    //}
+    return ret;
 }
 
 
@@ -73,12 +106,67 @@ string MessageHandler::generateMSG1() {
     int retGIDStatus = 0;
     int count = 0;
     sgx_ra_msg1_t sgxMsg1Obj;
+    //uint8_t buffer[1024] = "wodedongxizaishenmedifang";
+    //uint8_t *buffer = (uint8_t*)malloc(sizeof(sgx_sealed_data_t));
+    //sgx_ec256_fix_data_t buffer;
+    Log("========== SEALED ENCLAVE PUB KEY ==========");
+    Log("\tgot ec256 key is:%d", local_ec256_fix_data.g_key_flag);
 
     while (1) {
+        unsigned char pubbuf_b[sizeof(sgx_ec256_public_t)];
+        memcpy(pubbuf_b, (unsigned char*)&local_ec256_fix_data.ec256_public_key, sizeof(sgx_ec256_public_t));
+        Log("\tbefore public  key:%s",ByteArrayToString(pubbuf_b,sizeof(pubbuf_b)));
+        unsigned char encbuf[sizeof(sgx_sealed_data_t)];
+        memcpy(encbuf, (unsigned char*)&enc_private_key, sizeof(enc_private_key));
+        Log("\tbefore encdata key:%s",ByteArrayToString(encbuf,sizeof(encbuf)));
+
+        retGIDStatus = sgx_ra_get_msg1(this->enclave->getContext(),
+                                       this->enclave->getID(),
+                                       sgx_ra_get_ga,
+                                       &sgxMsg1Obj,
+                                       &local_ec256_fix_data,
+                                       &enc_private_key);
+        
+        unsigned char pubbuf[sizeof(sgx_ec256_public_t)];
+        memcpy(pubbuf, (unsigned char*)&local_ec256_fix_data.ec256_public_key, sizeof(sgx_ec256_public_t));
+        Log("\tenclave public key:%s",ByteArrayToString(pubbuf,sizeof(pubbuf)));
+        unsigned char pribuf_r[sizeof(sgx_ec256_private_t)];
+        memcpy(pribuf_r, (unsigned char*)&local_ec256_fix_data.ec256_private_key, sizeof(sgx_ec256_private_t));
+        Log("\tenclave privat key:%s",ByteArrayToString(pribuf_r,sizeof(pribuf_r)));
+        Log("\tsealed data size  :%d",local_ec256_fix_data.sealed_data_size);
+        unsigned char enctbuf[sizeof(enc_private_key)];
+        memcpy(enctbuf, (unsigned char*)&enc_private_key, sizeof(enc_private_key));
+        Log("\tenclave encryp key:%s",ByteArrayToString(enctbuf,sizeof(enctbuf)));
+        //unsigned char pribuf[sizeof(sgx_sealed_data_t)];
+        //memcpy(pribuf, (unsigned char*)&local_ec256_fix_data.enc_ec256_private_key, sizeof(sgx_sealed_data_t));
+        //Log("\tenclave encryp key:%s",ByteArrayToString(pribuf,sizeof(pribuf)));
+        
+        //uint8_t unsealedData[128] = "wodedongxizainali";
+        //uint8_t unsealedData[128];
+        //Log("\tenclave public key(decypted):(%s)",unsealedData);
+        /*
+        sgx_status_t retUnseal;
+        sgx_status_t unseal_s;
+        uint32_t *ustatus;
+        //uint8_t *unsealedData = (uint8_t*)malloc(zy_get_encrypt_len(this->enclave->getID(), ustatus, buffer));
+        uint8_t *unsealedData = (uint8_t*)malloc(64);
+        Log("\tsize of unsealed data is:%d",zy_get_encrypt_len(this->enclave->getID(), ustatus, buffer));
+        retUnseal = zy_unseal_pub_key(this->enclave->getID(), &unseal_s, buffer, unsealedData);
+        //unsigned char pubbufd[sizeof(unsealedData)];
+        //memcpy(pubbufd, (unsigned char*)unsealedData, sizeof(unsealedData));
+        Log("\tsize of sealed data is:%d",sizeof(buffer));
+        if(SGX_SUCCESS == retUnseal) {
+            Log("\tenclave public key(decypted):(%s)",unsealedData);
+        }else {
+            Log("\tdecrypt public key failed!", log::error);
+        }
+        */
+        /*
         retGIDStatus = sgx_ra_get_msg1(this->enclave->getContext(),
                                        this->enclave->getID(),
                                        sgx_ra_get_ga,
                                        &sgxMsg1Obj);
+        */
 
         if (retGIDStatus == SGX_SUCCESS) {
             break;
@@ -91,7 +179,7 @@ string MessageHandler::generateMSG1() {
                 count++;
             }
         } else {    //error other than busy
-            Log("Error, failed to generate MSG1", log::error);
+            Log("Error, failed to generate MSG1,error code:%lx", retGIDStatus, log::error);
             break;
         }
     }

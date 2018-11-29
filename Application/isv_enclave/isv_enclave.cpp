@@ -307,5 +307,21 @@ sgx_status_t verify_secret_data (
     return ret;
 }
 
+sgx_status_t zy_unseal_pub_key(sgx_sealed_data_t sealedData, uint8_t *unsealedData) {
+    uint32_t macLen = 0;
+    //uint32_t decryptSize = sgx_get_encrypt_txt_len(&sealedData);
+    //unsealedData = (uint8_t*)malloc(decryptSize);
+    uint32_t unsealedLen = sizeof(unsealedData);
+    return sgx_unseal_data(&sealedData,
+                           NULL,
+                           &macLen,
+                           unsealedData,
+                           &unsealedLen);
+}
+
+uint32_t zy_get_encrypt_len(sgx_sealed_data_t sealedData) {
+    return sgx_get_encrypt_txt_len(&sealedData);
+}
+
 
 

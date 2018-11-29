@@ -88,6 +88,7 @@ int ServiceProvider::sp_ra_proc_msg1_req(Messages::MessageMSG1 msg1, Messages::M
             ret = SP_INTERNAL_ERROR;
             break;
         }
+        Log("========== [SP INFO] ==========");
 
         // Generate the Service providers ECCDH key pair.
         sample_ret = sample_ecc256_open_context(&ecc_state);
@@ -115,6 +116,15 @@ int ServiceProvider::sp_ra_proc_msg1_req(Messages::MessageMSG1 msg1, Messages::M
             ret = SP_INTERNAL_ERROR;
             break;
         }
+        sgx_ec256_public_t *tmp_ga = &g_sp_db.g_a;
+        unsigned char tmp_ga_buf[sizeof(sgx_ec256_public_t)];
+        memcpy(tmp_ga_buf,(unsigned char *)(tmp_ga),sizeof(sgx_ec256_public_t));
+        Log("\tga : (%s)", ByteArrayToString(tmp_ga_buf, sizeof(sgx_ec256_public_t)));
+
+        sgx_ec256_public_t *tmp_gb = &g_sp_db.g_b;
+        unsigned char tmp_gb_buf[sizeof(sgx_ec256_public_t)];
+        memcpy(tmp_gb_buf,(unsigned char *)(tmp_gb),sizeof(sgx_ec256_public_t));
+        Log("\tgb : (%s)", ByteArrayToString(tmp_gb_buf, sizeof(sgx_ec256_public_t)));
 
         // Generate the client/SP shared secret
         sample_ec_dh_shared_t dh_key = {{0}};
@@ -442,6 +452,37 @@ int ServiceProvider::sp_ra_proc_msg3_req(Messages::MessageMSG3 msg, Messages::At
         Log("\tmr_signer: %s", ByteArrayToString(p_quote->report_body.mr_signer.m, SGX_HASH_SIZE));
         Log("\tisv_prod_id: 0x%0x", p_quote->report_body.isv_prod_id);
         Log("\tisv_svn: 0x%0x", p_quote->report_body.isv_svn);
+        Log("=== Quote structure ===");
+        Log("\tversion: 0x%0lx", p_quote->version);
+        Log("\tsign type: 0x%0lx", p_quote->sign_type);
+        unsigned char buf_qe_svn[sizeof(sgx_isv_svn_t)];
+        memcpy(buf_qe_svn,(unsigned char *)(&p_quote->qe_svn),sizeof(sgx_isv_svn_t));
+        Log("\tqe svn : (%s)", ByteArrayToString(buf_qe_svn, sizeof(sgx_isv_svn_t)));
+        unsigned char buf_pce_svn[sizeof(sgx_isv_svn_t)];
+        memcpy(buf_pce_svn,(unsigned char *)(&p_quote->pce_svn),sizeof(sgx_isv_svn_t));
+        Log("\tpce svn : (%s)", ByteArrayToString(buf_pce_svn, sizeof(sgx_isv_svn_t)));
+        Log("\txeid: 0x%0lx", p_quote->xeid);
+        unsigned char buf_basename[sizeof(sgx_basename_t)];
+        memcpy(buf_basename,(unsigned char *)(&p_quote->basename),sizeof(sgx_basename_t));
+        Log("\tbasename : (%s)", ByteArrayToString(buf_basename, sizeof(sgx_basename_t)));
+        unsigned char buf_reportbody[sizeof(sgx_report_body_t)];
+        memcpy(buf_reportbody,(unsigned char *)(&p_quote->report_body),sizeof(sgx_report_body_t));
+        Log("\treport body : (%s)", ByteArrayToString(buf_reportbody, sizeof(sgx_report_body_t)));
+        Log("\tsignature_len : 0x%0lx", p_quote->signature_len);
+        int s_len = p_quote->signature_len;
+        unsigned char buf_signature[s_len];
+        memcpy(buf_signature,(unsigned char *)(&p_quote->signature),s_len);
+        Log("\tsignature : (%s)", ByteArrayToString(buf_signature, s_len));
+
+        Log("\t === report data ===");
+        sgx_report_body_t *p_report_body = &p_quote->report_body;
+        unsigned char buf_report_data[sizeof(sgx_report_data_t)];
+        memcpy(buf_report_data,(unsigned char *)(&p_report_body->report_data),sizeof(sgx_report_data_t));
+        Log("\treport data : (%s)", ByteArrayToString(buf_report_data, sizeof(sgx_report_data_t)));
+
+        unsigned char t_buf[sizeof(sgx_quote_t)];
+        memcpy(t_buf,(unsigned char *)p_quote,sizeof(sgx_quote_t));
+        Log("\tquote content: (%s)", ByteArrayToString(t_buf, sizeof(sgx_quote_t)));
 
 
         // Respond the client with the results of the attestation.

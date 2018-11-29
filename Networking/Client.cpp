@@ -55,10 +55,10 @@ void Client::handle_connect(const boost::system::error_code &error) {
 
 
 void Client::handle_handshake(const boost::system::error_code& error) {
-    /*
     Log("Handshake successful");
     auto ret = this->callback_handler("", -1);
     send(ret);
+    /*
     */
     if (!error) {
         Log("Handshake successful");

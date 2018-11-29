@@ -158,7 +158,6 @@ vector<string> VerificationManager::incomingHandler(string v, int type) {
         break;
         case RA_MSG3: {
             Messages::MessageMSG3 msg3;
-            cout<<"===========MSG3 string:"<<v<<endl;
             ret = msg3.ParseFromString(v);
             if (ret && (msg3.type() == RA_MSG3)) {
                 s = this->handleMSG3(msg3);

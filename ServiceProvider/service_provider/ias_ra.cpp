@@ -76,6 +76,7 @@ int ias_verify_attestation_evidence(
 
     vector<pair<string, string>> result;
     //bool error = ws->verifyQuote(p_isv_quote, pse_manifest, NULL, &result);
+    printf("[INFO] === add debug === ias_ra.cpp escape verifyQuote\n");
     bool error = false;
 
 

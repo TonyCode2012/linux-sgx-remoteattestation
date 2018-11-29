@@ -3,6 +3,7 @@
 
 #include "LogBase.h"
 #include "sgx_capable.h"
+#include "sgx_tseal.h"
 
 using namespace util;
 
@@ -16,6 +17,8 @@ int Main(int argc, char* argv[]) {
     MessageHandler msg;
     msg.init();
     msg.start();
+
+    printf("========== msg life is over ==========\n");
 
     return ret;
 }

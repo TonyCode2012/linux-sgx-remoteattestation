@@ -44,6 +44,12 @@ private:
     string handleVerification();
     string generateMSG0();
     string createInitMsg(int type, string msg);
+    uint32_t my_flag = 0;
+    sgx_enclave_id_t local_enclave_id;
+    sgx_ra_context_t local_enclave_context;
+    sgx_status_t local_enclave_status;
+    sgx_ec256_fix_data_t local_ec256_fix_data;
+    sgx_sealed_data_t enc_private_key;
 
 protected:
     Enclave *enclave = NULL;
