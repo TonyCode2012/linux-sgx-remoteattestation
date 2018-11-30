@@ -49,7 +49,6 @@ private:
     sgx_ra_context_t local_enclave_context;
     sgx_status_t local_enclave_status;
     sgx_ec256_fix_data_t local_ec256_fix_data;
-    sgx_sealed_data_t enc_private_key;
 
 protected:
     Enclave *enclave = NULL;

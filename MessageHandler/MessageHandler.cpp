@@ -117,15 +117,13 @@ string MessageHandler::generateMSG1() {
         memcpy(pubbuf_b, (unsigned char*)&local_ec256_fix_data.ec256_public_key, sizeof(sgx_ec256_public_t));
         Log("\tbefore public  key:%s",ByteArrayToString(pubbuf_b,sizeof(pubbuf_b)));
         unsigned char encbuf[sizeof(sgx_sealed_data_t)];
-        memcpy(encbuf, (unsigned char*)&enc_private_key, sizeof(enc_private_key));
         Log("\tbefore encdata key:%s",ByteArrayToString(encbuf,sizeof(encbuf)));
 
         retGIDStatus = sgx_ra_get_msg1(this->enclave->getContext(),
                                        this->enclave->getID(),
                                        sgx_ra_get_ga,
                                        &sgxMsg1Obj,
-                                       &local_ec256_fix_data,
-                                       &enc_private_key);
+                                       &local_ec256_fix_data);
         
         unsigned char pubbuf[sizeof(sgx_ec256_public_t)];
         memcpy(pubbuf, (unsigned char*)&local_ec256_fix_data.ec256_public_key, sizeof(sgx_ec256_public_t));
@@ -134,9 +132,9 @@ string MessageHandler::generateMSG1() {
         memcpy(pribuf_r, (unsigned char*)&local_ec256_fix_data.ec256_private_key, sizeof(sgx_ec256_private_t));
         Log("\tenclave privat key:%s",ByteArrayToString(pribuf_r,sizeof(pribuf_r)));
         Log("\tsealed data size  :%d",local_ec256_fix_data.sealed_data_size);
-        unsigned char enctbuf[sizeof(enc_private_key)];
-        memcpy(enctbuf, (unsigned char*)&enc_private_key, sizeof(enc_private_key));
-        Log("\tenclave encryp key:%s",ByteArrayToString(enctbuf,sizeof(enctbuf)));
+        unsigned char psealedbuf[local_ec256_fix_data.sealed_data_size];
+        memcpy(psealedbuf, (unsigned char*)local_ec256_fix_data.p_sealed_data, local_ec256_fix_data.sealed_data_size);
+        Log("\tp sealed data is  :%s",ByteArrayToString(psealedbuf,sizeof(psealedbuf)));
         //unsigned char pribuf[sizeof(sgx_sealed_data_t)];
         //memcpy(pribuf, (unsigned char*)&local_ec256_fix_data.enc_ec256_private_key, sizeof(sgx_sealed_data_t));
         //Log("\tenclave encryp key:%s",ByteArrayToString(pribuf,sizeof(pribuf)));
