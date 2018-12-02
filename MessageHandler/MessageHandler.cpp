@@ -116,8 +116,9 @@ string MessageHandler::generateMSG1() {
         unsigned char pubbuf_b[sizeof(sgx_ec256_public_t)];
         memcpy(pubbuf_b, (unsigned char*)&local_ec256_fix_data.ec256_public_key, sizeof(sgx_ec256_public_t));
         Log("\tbefore public  key:%s",ByteArrayToString(pubbuf_b,sizeof(pubbuf_b)));
-        unsigned char encbuf[sizeof(sgx_sealed_data_t)];
-        Log("\tbefore encdata key:%s",ByteArrayToString(encbuf,sizeof(encbuf)));
+        //unsigned char encbuf[sizeof(sgx_sealed_data_t)];
+        //memcpy(pubbuf_b, (unsigned char*)&local_ec256_fix_data.p_sealed_data, sizeof(local_ec256_fix_data.p_sealed_data));
+        //Log("\tbefore encdata key:%s",ByteArrayToString(encbuf,sizeof(encbuf)));
 
         retGIDStatus = sgx_ra_get_msg1(this->enclave->getContext(),
                                        this->enclave->getID(),

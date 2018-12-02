@@ -73,16 +73,21 @@ sgx_status_t Enclave::createEnclave(uint32_t createENCLAVE) {
 
     do {
         if(createENCLAVE == 0) {
-            ret = sgx_create_enclave(this->enclave_path,
-                                     SGX_DEBUG_FLAG,
-                                     &launch_token,
-                                     &launch_token_update,
-                                     &this->enclave_id, NULL);
-        } else {
+            //ret = sgx_create_enclave(this->enclave_path,
+            //                         SGX_DEBUG_FLAG,
+            //                         &launch_token,
+            //                         &launch_token_update,
+            //                         &this->enclave_id, NULL);
+            ret = SGX_SUCCESS;
+        } 
+        else {
             ret = SGX_SUCCESS;
         }
-        /*
-        */
+        ret = sgx_create_enclave(this->enclave_path,
+                                 SGX_DEBUG_FLAG,
+                                 &launch_token,
+                                 &launch_token_update,
+                                 &this->enclave_id, NULL);
 
         if (SGX_SUCCESS != ret) {
             Log("Error, call sgx_create_enclave fail", log::error);
