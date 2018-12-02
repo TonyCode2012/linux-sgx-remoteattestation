@@ -20,8 +20,6 @@ enclave {
 												[in,count=16] uint8_t* gcm_mac,
 												uint32_t max_verification_length,
 												[out, count=16] uint8_t *p_ret);
-        public sgx_status_t zy_unseal_pub_key(sgx_sealed_data_t sealedData, [out] uint8_t *unsealedData);
-        public uint32_t zy_get_encrypt_len(sgx_sealed_data_t sealedData);
     };
 
 };

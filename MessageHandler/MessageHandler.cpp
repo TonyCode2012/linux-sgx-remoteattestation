@@ -53,12 +53,8 @@ sgx_status_t MessageHandler::initEnclave() {
     this->enclave = Enclave::getInstance();
     sgx_status_t ret = this->enclave->createEnclave(this->my_flag);
     if(this->my_flag == 0) {
-        //this->local_enclave_context = this->enclave->getContext();
         this->my_flag = 1;
     } 
-    //else {
-    //    this->enclave->setLocalEnclaveContext(this->local_enclave_context);
-    //}
     return ret;
 }
 
@@ -140,32 +136,6 @@ string MessageHandler::generateMSG1() {
         //memcpy(pribuf, (unsigned char*)&local_ec256_fix_data.enc_ec256_private_key, sizeof(sgx_sealed_data_t));
         //Log("\tenclave encryp key:%s",ByteArrayToString(pribuf,sizeof(pribuf)));
         
-        //uint8_t unsealedData[128] = "wodedongxizainali";
-        //uint8_t unsealedData[128];
-        //Log("\tenclave public key(decypted):(%s)",unsealedData);
-        /*
-        sgx_status_t retUnseal;
-        sgx_status_t unseal_s;
-        uint32_t *ustatus;
-        //uint8_t *unsealedData = (uint8_t*)malloc(zy_get_encrypt_len(this->enclave->getID(), ustatus, buffer));
-        uint8_t *unsealedData = (uint8_t*)malloc(64);
-        Log("\tsize of unsealed data is:%d",zy_get_encrypt_len(this->enclave->getID(), ustatus, buffer));
-        retUnseal = zy_unseal_pub_key(this->enclave->getID(), &unseal_s, buffer, unsealedData);
-        //unsigned char pubbufd[sizeof(unsealedData)];
-        //memcpy(pubbufd, (unsigned char*)unsealedData, sizeof(unsealedData));
-        Log("\tsize of sealed data is:%d",sizeof(buffer));
-        if(SGX_SUCCESS == retUnseal) {
-            Log("\tenclave public key(decypted):(%s)",unsealedData);
-        }else {
-            Log("\tdecrypt public key failed!", log::error);
-        }
-        */
-        /*
-        retGIDStatus = sgx_ra_get_msg1(this->enclave->getContext(),
-                                       this->enclave->getID(),
-                                       sgx_ra_get_ga,
-                                       &sgxMsg1Obj);
-        */
 
         if (retGIDStatus == SGX_SUCCESS) {
             break;
@@ -489,6 +459,7 @@ vector<string> MessageHandler::incomingHandler(string v, int type) {
     case RA_VERIFICATION: {	//Verification request
         Messages::InitialMessage init_msg;
         ret = init_msg.ParseFromString(v);
+        Log("========== verify attestation ==========");
         if (ret && init_msg.type() == RA_VERIFICATION) {
             s = this->handleVerification();
             res.push_back(to_string(RA_MSG0));
@@ -499,6 +470,7 @@ vector<string> MessageHandler::incomingHandler(string v, int type) {
         Messages::MessageMsg0 msg0;
         ret = msg0.ParseFromString(v);
         if (ret && (msg0.type() == RA_MSG0)) {
+            // generate MSG1 and send to SP
             s = this->handleMSG0(msg0);
             res.push_back(to_string(RA_MSG1));
         }
@@ -508,6 +480,7 @@ vector<string> MessageHandler::incomingHandler(string v, int type) {
         Messages::MessageMSG2 msg2;
         ret = msg2.ParseFromString(v);
         if (ret && (msg2.type() == RA_MSG2)) {
+            // generate MSG3 and send to SP
             s = this->handleMSG2(msg2);
             res.push_back(to_string(RA_MSG3));
         }
@@ -517,8 +490,17 @@ vector<string> MessageHandler::incomingHandler(string v, int type) {
         Messages::AttestationMessage att_msg;
         ret = att_msg.ParseFromString(v);
         if (ret && att_msg.type() == RA_ATT_RESULT) {
+            // receive MSG4 and verify encrypted secret
             s = this->handleAttestationResult(att_msg);
             res.push_back(to_string(RA_APP_ATT_OK));
+        }
+    }
+    break;
+    case SGX_SEAL_SECRET: {
+        Messages::AttestationMessage seal_msg;
+        ret = seal_msg.ParseFromString(v);
+        if (ret && seal_msg.type() == SGX_SEAL_SECRET){
+            Log("========== SP send a secret ==========");
         }
     }
     break;

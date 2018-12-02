@@ -151,6 +151,7 @@ vector<string> VerificationManager::incomingHandler(string v, int type) {
             Messages::MessageMSG1 msg1;
             ret = msg1.ParseFromString(v);
             if (ret && (msg1.type() == RA_MSG1)) {
+                // generate MSG2 and send to enclave
                 s = this->handleMSG1(msg1);
                 res.push_back(to_string(RA_MSG2));
             }
@@ -160,17 +161,24 @@ vector<string> VerificationManager::incomingHandler(string v, int type) {
             Messages::MessageMSG3 msg3;
             ret = msg3.ParseFromString(v);
             if (ret && (msg3.type() == RA_MSG3)) {
+                // generate MSG4 and send to enclave
                 s = this->handleMSG3(msg3);
                 res.push_back(to_string(RA_ATT_RESULT));
             }
         }
         break;
-        case RA_APP_ATT_OK: {
+        case RA_APP_ATT_OK: {   // recieve ACK from enclave
             Messages::SecretMessage sec_msg;
             ret = sec_msg.ParseFromString(v);
             if (ret) {
                 if (sec_msg.type() == RA_APP_ATT_OK) {
                     this->handleAppAttOk();
+                    Log("========== send a secret to app ==========");
+                    res.push_back(to_string(SGX_SEAL_SECRET));
+                    Messages::SecretMessage secret_msg;
+                    secret_msg.set_type(SGX_SEAL_SECRET);
+                    secret_msg.set_size(60);
+                    s = this->nm->serialize(secret_msg);
                 }
             }
         }
