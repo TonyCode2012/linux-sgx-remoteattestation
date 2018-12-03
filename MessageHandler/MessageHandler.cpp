@@ -5,7 +5,7 @@ using namespace util;
 
 MessageHandler::MessageHandler(int port) {
     this->nm = NetworkManagerServer::getInstance(port);
-    this->local_ec256_fix_data.g_key_flag = 0;
+    this->local_ec256_fix_data.g_key_flag = 1;
 }
 
 MessageHandler::~MessageHandler() {
@@ -27,27 +27,6 @@ void MessageHandler::start() {
 
 
 sgx_status_t MessageHandler::initEnclave() {
-    /*
-    if(this->my_flag == 0) {
-        Log("========== CREATE ENCLAVE FIRST TIME ==========");
-        this->my_flag = 1;
-        sgx_status_t ret = this->enclave->createEnclave();
-        this->local_enclave_id = this->enclave->getID();
-        this->local_enclave_context = this->enclave->getContext();
-        this->local_enclave_status = this->enclave->getStatus();
-        Log("========== STATUS IS ==========");
-        Log("\t%lx",this->local_enclave_status);
-    } else {
-        Log("========== ENCLAVE HAS BEEN CREATED ==========");
-        // set org enclave data
-        this->enclave->setLocalEnclaveId(this->local_enclave_id);
-        this->enclave->setLocalEnclaveContext(this->local_enclave_context);
-        this->enclave->setLocalEnclaveStatus((sgx_status_t)0);
-        Log("========== STATUS IS ==========");
-        Log("\t%lx",this->getEnclaveStatus());
-    }
-    return ret;
-    */
     Log("========== STATUS IS ==========");
     Log("\tmy flag is:%d",this->my_flag);
     this->enclave = Enclave::getInstance();
@@ -102,19 +81,27 @@ string MessageHandler::generateMSG1() {
     int retGIDStatus = 0;
     int count = 0;
     sgx_ra_msg1_t sgxMsg1Obj;
-    //uint8_t buffer[1024] = "wodedongxizaishenmedifang";
-    //uint8_t *buffer = (uint8_t*)malloc(sizeof(sgx_sealed_data_t));
-    //sgx_ec256_fix_data_t buffer;
     Log("========== SEALED ENCLAVE PUB KEY ==========");
     Log("\tgot ec256 key is:%d", local_ec256_fix_data.g_key_flag);
 
     while (1) {
-        unsigned char pubbuf_b[sizeof(sgx_ec256_public_t)];
-        memcpy(pubbuf_b, (unsigned char*)&local_ec256_fix_data.ec256_public_key, sizeof(sgx_ec256_public_t));
-        Log("\tbefore public  key:%s",ByteArrayToString(pubbuf_b,sizeof(pubbuf_b)));
-        //unsigned char encbuf[sizeof(sgx_sealed_data_t)];
-        //memcpy(pubbuf_b, (unsigned char*)&local_ec256_fix_data.p_sealed_data, sizeof(local_ec256_fix_data.p_sealed_data));
-        //Log("\tbefore encdata key:%s",ByteArrayToString(encbuf,sizeof(encbuf)));
+        // read public and sealed private key from file
+        ifstream pri_stream(Settings::ec_pri_key_path);
+        ifstream pub_stream(Settings::ec_pub_key_path);
+        string pri_s_str,pub_str;
+        getline(pri_stream,pri_s_str);
+        getline(pub_stream,pub_str);
+        uint8_t *ppub;
+        uint8_t *ppri_s;
+        HexStringToByteArray(pub_str,&ppub);
+        HexStringToByteArray(pri_s_str,&ppri_s);
+        memcpy(&local_ec256_fix_data.ec256_public_key,ppub,sizeof(sgx_ec256_public_t));
+        memcpy(local_ec256_fix_data.p_sealed_data,ppri_s,592);
+        local_ec256_fix_data.sealed_data_size = 592;
+
+        Log("\tbefore public  key:%s",pub_str);
+        Log("\tsealed private dat:%s",pri_s_str);
+
 
         retGIDStatus = sgx_ra_get_msg1(this->enclave->getContext(),
                                        this->enclave->getID(),
@@ -132,9 +119,6 @@ string MessageHandler::generateMSG1() {
         unsigned char psealedbuf[local_ec256_fix_data.sealed_data_size];
         memcpy(psealedbuf, (unsigned char*)local_ec256_fix_data.p_sealed_data, local_ec256_fix_data.sealed_data_size);
         Log("\tp sealed data is  :%s",ByteArrayToString(psealedbuf,sizeof(psealedbuf)));
-        //unsigned char pribuf[sizeof(sgx_sealed_data_t)];
-        //memcpy(pribuf, (unsigned char*)&local_ec256_fix_data.enc_ec256_private_key, sizeof(sgx_sealed_data_t));
-        //Log("\tenclave encryp key:%s",ByteArrayToString(pribuf,sizeof(pribuf)));
         
 
         if (retGIDStatus == SGX_SUCCESS) {

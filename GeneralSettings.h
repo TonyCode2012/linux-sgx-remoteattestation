@@ -15,6 +15,8 @@ namespace Settings {
 	static string spid = "4F2229E41A0ECA12BAE6EDB36E87EAFE"; //SPID provided by Intel after registration for the IAS service
 	static const char *ias_crt = "/home/vdeadmin/errands/linux-sgx-remoteattestation/cert/tmp/server.crt"; //location of the certificate send to Intel when registring for the IAS
 	static string ias_url = "https://test-as.sgx.trustedservices.intel.com:443/attestation/sgx/v1/";
+    static const char *ec_pri_key_path = "/home/vdeadmin/errands/linux-sgx-remoteattestation/Application/ec256_private_key";
+    static const char *ec_pub_key_path = "/home/vdeadmin/errands/linux-sgx-remoteattestation/Application/ec256_public_key";
 }
 
 #endif
