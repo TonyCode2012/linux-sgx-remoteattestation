@@ -102,6 +102,20 @@ int ServiceProvider::sp_ra_proc_msg1_req(Messages::MessageMSG1 msg1, Messages::M
         sample_ec256_public_t pub_key = {{0},{0}};
         sample_ec256_private_t priv_key = {{0}};
         sample_ret = sample_ecc256_create_key_pair(&priv_key, &pub_key, ecc_state);
+        // read public and sealed private key from file
+        ifstream pri_stream(Settings::ec_pri_key_path_server);
+        ifstream pub_stream(Settings::ec_pub_key_path_server);
+        string pri_str,pub_str;
+        getline(pri_stream,pri_str);
+        getline(pub_stream,pub_str);
+        uint8_t *ppub;
+        uint8_t *ppri;
+        HexStringToByteArray(pub_str,&ppub);
+        HexStringToByteArray(pri_str,&ppri);
+        memcpy(&pub_key,ppub,sizeof(sample_ec256_public_t));
+        memcpy(&priv_key,ppri,sizeof(sample_ec256_private_t));
+        Log("\tpublic  key:%s",pub_str);
+        Log("\tprivate key:%s",pri_str);
 
         if (SAMPLE_SUCCESS != sample_ret) {
             Log("Error, cannot get key pair", log::error);

@@ -17,6 +17,8 @@ namespace Settings {
 	static string ias_url = "https://test-as.sgx.trustedservices.intel.com:443/attestation/sgx/v1/";
     static const char *ec_pri_key_path = "/home/vdeadmin/errands/linux-sgx-remoteattestation/Application/ec256_private_key";
     static const char *ec_pub_key_path = "/home/vdeadmin/errands/linux-sgx-remoteattestation/Application/ec256_public_key";
+    static const char *ec_pub_key_path_server = "/home/vdeadmin/errands/linux-sgx-remoteattestation/ServiceProvider/ec256_public_key";
+    static const char *ec_pri_key_path_server = "/home/vdeadmin/errands/linux-sgx-remoteattestation/ServiceProvider/ec256_private_key";
 }
 
 #endif
